@@ -11,6 +11,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read
+      issues: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,44 +24,70 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install svgwrite PyGithub
+        run: |
+          pip install svgwrite PyGithub
+          sudo apt-get install -y jq  # For JSON parsing
 
       - name: Generate SVGs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p assets
-          python scripts/generate_pulse.py
-          python scripts/generate_river.py
+          # Add retry logic for API calls
+          python -c "
+          import os, time, subprocess
+          for _ in range(3):
+              try:
+                  subprocess.check_call(['python', 'scripts/generate_pulse.py'])
+                  subprocess.check_call(['python', 'scripts/generate_river.py'])
+                  break
+              except Exception as e:
+                  print(f'Error: {str(e)}')
+                  time.sleep(10)
+          "
 
       - name: Create timestamped branch
         id: branch
         run: |
-          BRANCH_NAME="code-pulse-$(date +%Y%m%d)"
+          BRANCH_NAME="code-pulse-$(date +%Y%m%d%H%M%S)"
           git checkout -b $BRANCH_NAME
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update code pulse and river"
+          commit_message: "📈 Update code pulse and river visualizations"
           branch: ${{ env.BRANCH_NAME }}
+          add_options: "-u"
+          push_options: "--force"
 
-          push_options: --force
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || sudo apt install curl -y
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
 
       - name: Create Pull Request
+        id: pr
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
           base: main
-          title: "Auto Update: Code Assets (${{ env.BRANCH_NAME }})"
-          body: "Automated update of code pulse and river SVGs."
-          delete-branch: true # Auto-delete merged branches
+          title: "Automated Code Visualization Update (${{ env.BRANCH_NAME }})"
+          body: |
+            :robot: Automated update containing:
+            - Latest code pulse data
+            - Repository activity river
+            - Contribution visualization
+          delete-branch: false
 
       - name: Auto-merge PR
-        if: success()
+        if: success() && steps.pr.outputs.pull-request-number != ''
         run: |
-          gh pr merge ${{ env.BRANCH_NAME }} --squash --auto
+          gh pr merge ${{ steps.pr.outputs.pull-request-number }} --squash --auto
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
