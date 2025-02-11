@@ -1,0 +1,64 @@
+name: Code Pulse
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * *"
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install svgwrite PyGithub
+
+      - name: Generate SVGs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p assets
+          python scripts/generate_pulse.py
+          python scripts/generate_river.py
+
+      - name: Create timestamped branch
+        id: branch
+        run: |
+          BRANCH_NAME="code-pulse-$(date +%Y%m%d)"
+          git checkout -b $BRANCH_NAME
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update code pulse and river"
+          branch: ${{ env.BRANCH_NAME }}
+
+          push_options: --force
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.BRANCH_NAME }}
+          base: main
+          title: "Auto Update: Code Assets (${{ env.BRANCH_NAME }})"
+          body: "Automated update of code pulse and river SVGs."
+          delete-branch: true # Auto-delete merged branches
+
+      - name: Auto-merge PR
+        if: success()
+        run: |
+          gh pr merge ${{ env.BRANCH_NAME }} --squash --auto
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
