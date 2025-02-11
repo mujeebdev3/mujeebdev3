@@ -25,16 +25,15 @@ jobs:
 
       - name: Generate SVGs
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           mkdir -p assets
           python scripts/generate_pulse.py
           python scripts/generate_river.py
 
       - name: Create timestamped branch
-        id: branch
         run: |
-          BRANCH_NAME="code-pulse-$(date +%Y%m%d)"
+          BRANCH_NAME="update-code-pulse-$(date +%Y%m%d%H%M%S)"
           git checkout -b $BRANCH_NAME
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
@@ -43,22 +42,21 @@ jobs:
         with:
           commit_message: "Update code pulse and river"
           branch: ${{ env.BRANCH_NAME }}
-
           push_options: --force
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.BRANCH_NAME }}
-          base: main
-          title: "Auto Update: Code Assets (${{ env.BRANCH_NAME }})"
-          body: "Automated update of code pulse and river SVGs."
-          delete-branch: true # Auto-delete merged branches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh pr create \
+            --base main \
+            --head ${{ env.BRANCH_NAME }} \
+            --title "Auto Update: Code Assets" \
+            --body "Automated update of code pulse and river SVGs."
 
       - name: Auto-merge PR
-        if: success()
-        run: |
-          gh pr merge ${{ env.BRANCH_NAME }} --squash --auto
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_URL=$(gh pr list --head ${{ env.BRANCH_NAME }} --json url --jq '.[0].url')
+          gh pr merge $PR_URL --squash --auto

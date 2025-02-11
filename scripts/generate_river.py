@@ -1,5 +1,3 @@
-
-
 import os
 import requests
 import svgwrite
@@ -81,7 +79,6 @@ def generate_river():
 
 if __name__ == "__main__":
     generate_river()
-
 
 
 

@@ -8,9 +8,8 @@ import random
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 
-
 def get_contributions():
-    token = os.getenv("GITHUB_TOKEN") 
+    token = os.getenv("GITHUB_TOKEN")  # Must be stored in GitHub Secrets
     if not token:
         raise ValueError("GITHUB_TOKEN environment variable is missing!")
 
@@ -35,8 +34,6 @@ def get_contributions():
         raise Exception(f"GraphQL Error: {data['errors']}")
 
     return data["data"]["viewer"]["contributionsCollection"]["contributionCalendar"]["totalContributions"]
-
-
 
 def generate_constellation():
     contributions = get_contributions()
@@ -75,7 +72,7 @@ def generate_constellation():
     
     dwg.save()
 
-def _add_starry_background(dwg): 
+def _add_starry_background(dwg):  # Accept dwg as parameter
     """Add random twinkling stars background"""
     for _ in range(50):
         dwg.add(dwg.circle(
