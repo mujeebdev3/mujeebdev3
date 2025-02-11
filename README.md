@@ -369,10 +369,10 @@ _Every coffee bean powers a new feature!_
 
 <br>
 
-[![Tech Infrastructure Pulse](https://github.com/mujeebdev3/mujeeb3/raw/main/assets/code-river.svg)](https://github.com/mujeebdev3)
+[![Tech Infrastructure Pulse](https://github.com/mujeebdev3/mujeebdev3/raw/main/assets/code-river.svg)](https://github.com/mujeebdev3)
 <br>
 
-[![Tech Infrastructure Pulse](https://github.com/mujeebdev3/mujeeb3/raw/main/assets/constellation.svg)](https://github.com/mujeebdev3)
+[![Tech Infrastructure Pulse](https://github.com/mujeebdev3/mujeebdev3/raw/main/assets/constellation.svg)](https://github.com/mujeebdev3)
 
 <br>
 
